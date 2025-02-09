@@ -65,6 +65,34 @@ where
     fn into_hlist(self) -> H;
 }
 
+/// Trait to append two HLists together.
+pub trait Append<RHS> {
+    type Output: HList;
+    fn append(self, rhs: RHS) -> Self::Output;
+}
+
+/// Base case: Appending HNil to another HList returns the second HList.
+impl<RHS: HList> Append<RHS> for HNil {
+    type Output = RHS;
+    fn append(self, rhs: RHS) -> Self::Output {
+        rhs
+    }
+}
+
+/// Recursive case: Appending HCons to another HList.
+impl<H, T: HList, RHS: HList> Append<RHS> for HCons<H, T>
+where
+    T: Append<RHS>,
+    T::Output: HList, // Ensure the recursive output is still an HList
+{
+    type Output = HCons<H, T::Output>;
+
+    fn append(self, rhs: RHS) -> Self::Output {
+        HCons(self.0, self.1.append(rhs))
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -138,4 +166,49 @@ mod tests {
             assert_eq!(hlist0, hlist1);
         }
     }
+
+    
+    #[test]
+    fn append_hnil_to_hnil() {
+        let list1 = HNil;
+        let list2 = HNil;
+        let result: HNil = list1.append(list2);
+
+        println!("Appending HNil to HNil: {:?}", result);
+        assert_eq!(format!("{:?}", result), "HNil");
+    }
+
+    #[test]
+    fn append_hcons_to_hnil() {
+        let list1 = HCons(42, HNil);
+        let list2 = HNil;
+        let result = list1.append(list2);
+
+      
+        assert_eq!(format!("{:?}", result), "HCons(42, HNil)");
+    }
+
+    #[test]
+    fn append_hcons_to_hcons() {
+        let list1 = HCons(42, HNil);
+        let list2 = HCons("hello", HNil);
+        let result = list1.append(list2);
+
+     
+        assert_eq!(format!("{:?}", result), "HCons(42, HCons(\"hello\", HNil))");
+    }
+
+    #[test]
+    fn append_multiple_hcons() {
+        let list1 = HCons(1, HCons(2, HNil));
+        let list2 = HCons(3, HCons(4, HNil));
+        let result = list1.append(list2);
+
+      
+        assert_eq!(
+            format!("{:?}", result),
+            "HCons(1, HCons(2, HCons(3, HCons(4, HNil))))"
+        );
+}
+
 }
